@@ -350,7 +350,6 @@ int quesIndx = 0;
                             printf("%s%s Wins by forfeit!%s\n\n",GREEN, players[remaining_player].name,DEFAULT);
                             close(players[remaining_player].fd);
                             quesIndx = quesNum;
-                            break;
                         }
             /* All players disconnected*/
                         else if(active players == 0){
