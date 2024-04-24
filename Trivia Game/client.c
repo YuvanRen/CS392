@@ -86,12 +86,16 @@ void parse_connect(int argc, char** argv, int* server_fd) {
 
 int main(int argc, char *argv[]) {
     int server_fd;
+    fd_set read_fds;
     parse_connect(argc, argv, &server_fd);
     char buffer[1024];
-    while(1) {
+/* SERVER ACCEPTANCE*/
         /* Receive messages from server*/
         int recvbytes = recv(server_fd, buffer, 1024, 0);
-        if (recvbytes == 0) break;
+        if (recvbytes == 0){
+            printf("Server closed the connection.\n");
+            close(server_fd);
+        }
         else {
             buffer[recvbytes] = 0;
             printf("%s%s%s", YELLOW ,buffer,DEFAULT); fflush(stdout);
@@ -100,6 +104,32 @@ int main(int argc, char *argv[]) {
         scanf("%s", buffer);
         send(server_fd, buffer, strlen(buffer), 0);
 
+/* GAME*/
+while (1) {
+        FD_ZERO(&read_fds);
+        FD_SET(server_fd, &read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);
+
+        int max_fd = (server_fd > STDIN_FILENO) ? server_fd : STDIN_FILENO;
+
+
+        select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+
+        if (FD_ISSET(server_fd, &read_fds)) {  /* Input from server */ 
+            int recvbytes = recv(server_fd, buffer, sizeof(buffer) - 1, 0);
+            if (recvbytes <= 0) {
+                printf("Server closed the connection.\n");
+                break;
+            }
+            buffer[recvbytes] = '\0';
+            printf("%s", buffer);
+        }
+
+        if (FD_ISSET(STDIN_FILENO, &read_fds)) {  /* Input from user */ 
+            if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+                send(server_fd, buffer, strlen(buffer), 0);
+            }
+        }
     }
 
     close(server_fd);  
