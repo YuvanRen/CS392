@@ -18,7 +18,7 @@
 #define DEFAULT_FILE "questions.txt"
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT 25555
-#define MAX_CONNECTIONS 2
+#define MAX_CONNECTIONS 3
 
 #define YELLOW "\x1B[38;5;227m"
 #define RED "\x1B[38;5;196m"  /* For errors */
@@ -58,6 +58,7 @@ int read_questions(struct Entry* arr, char* filename){
     }
 
     char line[1024];
+    char answer[50];
 
     while (fgets(line, sizeof(line), fp) != NULL) {
         /* Skip any empty lines */ 
@@ -72,7 +73,17 @@ int read_questions(struct Entry* arr, char* filename){
 
         /* Read the answer index line */ 
         if (fgets(line, sizeof(line), fp) == NULL) break;
-        arr[count].answer_idx = atoi(line);
+        line[strcspn(answer, "\n")] = 0;
+        arr[count].answer_idx = atoi(answer);
+
+        /* Determine the correct answer index */
+        if (strcmp(answer, arr[count].options[0]) == 0) {
+            arr[count].answer_idx = 1;
+        } else if (strcmp(answer, arr[count].options[1]) == 0) {
+            arr[count].answer_idx = 2;
+        } else if (strcmp(answer, arr[count].options[2]) == 0) {
+            arr[count].answer_idx = 3;
+        }
 
         /* Increment question count */
         count++;
@@ -83,15 +94,6 @@ int read_questions(struct Entry* arr, char* filename){
 
     fclose(fp);
     return count; 
-}
-
-/* Helper to display messages to players mid game*/
-void display(struct Player* players, int total_players, const char *message) {
-    for (int i = 0; i < total_players; i++) {
-        if (players[i].fd != -1) {
-            write(players[i].fd, message, strlen(message));
-        }
-    }
 }
 
 int main(int argc, char *argv[]) {
@@ -341,7 +343,7 @@ int quesIndx = 0;
 /* Check who gets answer correct first and assign points */
                 if(ans_bytes > 0){
                     buffer[ans_bytes] = 0; /* Terminator*/
-                    int choice = atoi(buffer) - 1;
+                    int choice = atoi(buffer) - 1 ;
 
             /* A player got correct answer*/
                     if(choice == questions[quesIndx].answer_idx){
@@ -357,8 +359,7 @@ int quesIndx = 0;
         /* Send out correct answer */
                      for (int k = 0; k < MAX_CONNECTIONS; k++) {
                         if (players[k].fd != -1) {
-                            snprintf(buffer, sizeof(buffer), "%sCorrect answer was: %s%s\n\n", GREEN,questions[quesIndx].options[questions[quesIndx].answer_idx] ,DEFAULT);                    
-                            write(players[k].fd, buffer, strlen(buffer));
+                            snprintf(buffer, sizeof(buffer), "%sCorrect answer was: %s%s\n\n", GREEN,questions[quesIndx].options[questions[quesIndx].answer_idx] ,DEFAULT);                    write(players[k].fd, buffer, strlen(buffer));
                         }
                     }
                     break;
@@ -366,6 +367,7 @@ int quesIndx = 0;
              }/* Disconnected player handler*/
                 else if(ans_bytes == 0){
                     printf("%sConnection lost!%s\n",RED,DEFAULT);
+                    printf("%s\nCorrect answer was: \n   %s%s%s\n\n", BLUE,DEFAULT,Indent,questions[quesIndx].options[questions[quesIndx].answer_idx]);
                     close(players[i].fd);
                     players[i].fd = -1;
      /*-----------------------------------------------------------------------*/
@@ -419,34 +421,51 @@ int quesIndx = 0;
             max = players[i].score;
             winner_idx = i;
 
-        } else if ((players[i].fd != -1 && max == players[i].score)){
-                tie = true;
-                printf("%sTIE!\n",RED);
-                printf("%sUsers with same score:%d%s\n",YELLOW, max,DEFAULT);
-                for(int j = 0; j < MAX_CONNECTIONS; j++) {
-                      if (players[i].fd != -1 && players[i].score == max) {
-                        printf("%s\n",players[j].name);
+        }
+    } 
+    /* tie checker */
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+    if (players[i].fd != -1 && players[i].score == max && i != winner_idx) {
+        tie = true;
+    }
+}
+    if (tie){
+        printf("%sTIE!\n",RED);
+        printf("%sUsers with same score of %d%s\n",YELLOW, max,DEFAULT);
+        for(int i = 0; i < MAX_CONNECTIONS; i++) {
+              if (players[i].fd == -1 && players[i].score == max) {
+                printf("%s   %s(Disconnected)%s\n",players[i].name,RED,DEFAULT);
+                }else if(players[i].fd != -1 && players[i].score == max){
+                printf("%s\n",players[i].name); 
                 }
             }
-         printf("%sTHANK YOU FOR PLAYING! :D\n",BLUE);
-         goto end;
+            goto end;
       }
-    }
-/* Winner message */             
+    
+/* Winner message */           
     printf("%sCongrats, %s!.\n%sYou win with a score of:%s %d\n", NGREEN,players[winner_idx].name,BLUE,DEFAULT,players[winner_idx].score);
 
 
+end:
 /* Print Scoreboard */
     printf("%s+------------------------+\n", RED);
     printf("%s|      Scoreboard        |\n",RED);
     printf("%s+------------------------+%s\n", RED,DEFAULT);
 
     for(int j = 0; j < MAX_CONNECTIONS; j++) {
+        if(players[j].fd == -1){
+        printf("%sUser:%s%s%s   (Disconnected)\n",YELLOW,DEFAULT,players[j].name,RED);
+        printf("%sScore:\n", YELLOW);
+        printf("%s%d\n\n",NGREEN,players[j].score);
+        }
+        else{
         printf("%sUser:%s%s\n",YELLOW,DEFAULT,players[j].name);
         printf("%sScore:\n", YELLOW);
         printf("%s%d\n\n",NGREEN,players[j].score);
         }
-end:
+    }
+    printf("%sTHANK YOU FOR PLAYING! :D\n",BLUE);
+
 /* Close all connections*/
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         if (players[i].fd != -1) {
