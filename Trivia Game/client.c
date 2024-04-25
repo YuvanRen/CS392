@@ -89,22 +89,7 @@ int main(int argc, char *argv[]) {
     fd_set read_fds;
     parse_connect(argc, argv, &server_fd);
     char buffer[1024];
-/* SERVER ACCEPTANCE*/
-        /* Receive messages from server*/
-        int recvbytes = recv(server_fd, buffer, 1024, 0);
-        if (recvbytes == 0){
-            printf("Server closed the connection.\n");
-            close(server_fd);
-        }
-        else {
-            buffer[recvbytes] = 0;
-            printf("%s%s%s", YELLOW ,buffer,DEFAULT); fflush(stdout);
-        }
-        /* Send messages to server*/
-        scanf("%s", buffer);
-        send(server_fd, buffer, strlen(buffer), 0);
 
-/* GAME*/
 while (1) {
         FD_ZERO(&read_fds);
         FD_SET(server_fd, &read_fds);
@@ -127,6 +112,7 @@ while (1) {
 
         if (FD_ISSET(STDIN_FILENO, &read_fds)) {  /* Input from user */ 
             if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+                buffer[strcspn(buffer, "\n")] = '\0';
                 send(server_fd, buffer, strlen(buffer), 0);
             }
         }
