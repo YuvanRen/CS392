@@ -21,7 +21,7 @@
 #define MAX_CONNECTIONS 3
 
 #define YELLOW "\x1B[38;5;227m"
-#define RED "\x1B[38;5;196m"  /* For errors */
+#define RED "\x1B[38;5;196m"
 #define BLUE "\x1B[1;34m"
 #define GREEN "\x1B[32m"
 #define NGREEN "\x1B[92m"
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
         players[i].score =0;
     }
 
-    char buffer[1024];
+    char buffer[2048];
     int recvbytes = 0;
     char* getName = "Please type your name:\n";
 
@@ -260,7 +260,8 @@ int main(int argc, char *argv[]) {
                     /* read name */
                         /* && */
                /* Check for lost connection*/
-                recvbytes = read(players[i].fd, buffer, 1024);
+               
+                recvbytes = read(players[i].fd, buffer, sizeof(buffer));
                 if(recvbytes == 0){
                     printf("%sConnection lost!%s\n",RED,DEFAULT);
                     close(players[i].fd);
@@ -337,7 +338,7 @@ int quesIndx = 0;
         for(int i = 0; i < MAX_CONNECTIONS; i++){
             if(players[i].fd != -1 && FD_ISSET(players[i].fd, &read_fds)){
         /* read players answers*/
-        memset(buffer, 0, sizeof(buffer));  // Clear buffer
+                memset(buffer, 0, sizeof(buffer));  // Clear buffer
                 int ans_bytes = read(players[i].fd, buffer, sizeof(buffer) - 1);
 
 /* Check who gets answer correct first and assign points */
@@ -423,7 +424,8 @@ int quesIndx = 0;
 
         }
     } 
-    /* tie checker */
+
+/* Tie Checker */
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
     if (players[i].fd != -1 && players[i].score == max && i != winner_idx) {
         tie = true;
@@ -464,7 +466,7 @@ end:
         printf("%s%d\n\n",NGREEN,players[j].score);
         }
     }
-    printf("%sTHANK YOU FOR PLAYING! :D\n",BLUE);
+    printf("%sTHANK YOU FOR PLAYING! :D\n\n",BLUE);
 
 /* Close all connections*/
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
