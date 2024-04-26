@@ -360,7 +360,8 @@ int quesIndx = 0;
         /* Send out correct answer */
                      for (int k = 0; k < MAX_CONNECTIONS; k++) {
                         if (players[k].fd != -1) {
-                            snprintf(buffer, sizeof(buffer), "%sCorrect answer was: %s%s\n\n", GREEN,questions[quesIndx].options[questions[quesIndx].answer_idx] ,DEFAULT);                    write(players[k].fd, buffer, strlen(buffer));
+                            snprintf(buffer, sizeof(buffer), "%sCorrect answer was: %s%s\n\n", GREEN,questions[quesIndx].options[questions[quesIndx].answer_idx] ,DEFAULT);
+                            write(players[k].fd, buffer, strlen(buffer));
                         }
                     }
                     break;
